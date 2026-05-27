@@ -1,6 +1,6 @@
-# VCT 2025 Match Predictor
+# VCT 2026 Match Predictor
 
-Prediksi hasil match Valorant Champions Tour 2025 berdasarkan data dari vlr.gg.
+Prediksi hasil match Valorant Champions Tour 2026 berdasarkan data dari vlr.gg.
 
 ## Struktur Project
 
@@ -36,26 +36,26 @@ python src/scraper_vlr.py
 Estimasi waktu: 15–30 menit (tergantung jumlah match)
 
 Output:
-- `data/vct2025_events.csv`
-- `data/vct2025_matches.csv`
-- `data/vct2025_match_details.json`
-- `data/vct2025_player_stats.csv`
+- `data/vct2026_events.csv`
+- `data/vct2026_matches.csv`
+- `data/vct2026_match_details.json`
+- `data/vct2026_player_stats.csv`
 
 ### Step 2 — Feature Engineering
 ```bash
 python src/feature_engineering.py
 ```
 Output:
-- `data/vct2025_features.csv`
-- `data/vct2025_team_stats.csv`
-- `data/vct2025_team_player_perf.csv`
+- `data/vct2026_features.csv`
+- `data/vct2026_team_stats.csv`
+- `data/vct2026_team_player_perf.csv`
 
 ### Step 3 — Training Model
 ```bash
 python src/model.py
 ```
 Output:
-- `models/vct2025_model.pkl`
+- `models/vct2026_model.pkl`
 - `models/metrics.json`
 
 ## Fitur yang Digunakan Model
