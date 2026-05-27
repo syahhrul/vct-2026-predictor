@@ -4,7 +4,8 @@ Model Training & Prediksi — VCT 2025 (v3)
 
 import pandas as pd
 import numpy as np
-import json, os, pickle
+import json, os
+import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import GradientBoostingClassifier, VotingClassifier
 from sklearn.preprocessing import StandardScaler
@@ -88,8 +89,8 @@ def train_and_save(features_df, feature_cols):
     pipeline = build_pipeline()
     metrics  = evaluate(pipeline, X, y)
 
-    with open(f"{MODEL_DIR}/vct2025_model.pkl", "wb") as f:
-        pickle.dump({"model": pipeline, "features": feature_cols}, f)
+    joblib.dump({"model": pipeline, "features": feature_cols},
+                f"{MODEL_DIR}/vct2025_model.pkl")
     with open(f"{MODEL_DIR}/metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)
 
@@ -103,8 +104,7 @@ def predict_match(team1, team2, pipeline=None, feature_cols=None):
     Menggunakan Elo final dari team_stats.
     """
     if pipeline is None:
-        with open(f"{MODEL_DIR}/vct2025_model.pkl", "rb") as f:
-            saved = pickle.load(f)
+        saved        = joblib.load(f"{MODEL_DIR}/vct2025_model.pkl")
         pipeline     = saved["model"]
         feature_cols = saved["features"]
 

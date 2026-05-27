@@ -3,7 +3,7 @@ VCT 2026 Match Predictor — Streamlit Dashboard
 Jalankan: streamlit run dashboard.py
 """
 
-import os, pickle, json
+import os, json
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -65,8 +65,8 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    with open(f"{MODEL_DIR}/vct2025_model.pkl", "rb") as f:
-        saved = pickle.load(f)
+    import joblib
+    saved = joblib.load(f"{MODEL_DIR}/vct2025_model.pkl")
     return saved["model"], saved["features"]
 
 
@@ -311,8 +311,8 @@ def main():
             # Quick matchups Masters London 2026
             st.markdown("---")
             st.markdown("**Masters London 2026 — Quick pick'em:**")
-            quick = [("Xi Lai Gaming","NRG"), ("Team Vitality","Dragon Ranger Gaming"),
-                     ("FULL SENSE","FUT Esports"), ("Leviatán","Global Esports")]
+            quick = [("G2 Esports","NRG"), ("Paper Rex","Team Heretics"),
+                     ("EDward Gaming","Team Vitality"), ("Leviatán","FULL SENSE")]
             qcols = st.columns(len(quick))
             for i, (t1, t2) in enumerate(quick):
                 if t1 in team_list and t2 in team_list:
