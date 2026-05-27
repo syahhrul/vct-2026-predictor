@@ -69,8 +69,3 @@ Output:
 | `acs_diff` | Selisih rata-rata ACS (firepower) |
 | `rating_diff` | Selisih rata-rata rating VLR |
 
-## Tips
-
-- Jalankan ulang scraper secara berkala untuk data terbaru
-- Untuk `max_matches` di scraper, mulai dari 50 dulu, setelah yakin baru naik ke 200+
-- Kalau mau scraping lebih cepat, kurangi `delay` di `get_soup()` — tapi risiko di-rate-limit vlr.gg
