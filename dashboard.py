@@ -53,14 +53,21 @@ def get_last_updated():
 
 
 @st.cache_data
-def load_data():
-    matches      = pd.read_csv(f"{DATA_DIR}/vct2025_matches.csv")
-    team_stats   = pd.read_csv(f"{DATA_DIR}/vct2025_team_stats.csv")
-    features     = pd.read_csv(f"{DATA_DIR}/vct2025_features.csv")
-    player_stats = pd.read_csv(f"{DATA_DIR}/vct2025_player_stats.csv")
-    pp_path      = f"{DATA_DIR}/vct2025_team_player_perf.csv"
+def load_core():
+    matches    = pd.read_csv(f"{DATA_DIR}/vct2025_matches.csv",
+                             usecols=["event","event_id","match_id","team1","team2",
+                                      "score1","score2","date","stage","status","url"])
+    team_stats = pd.read_csv(f"{DATA_DIR}/vct2025_team_stats.csv")
+    return matches, team_stats
+
+
+@st.cache_data
+def load_player_stats():
+    ps_path = f"{DATA_DIR}/vct2025_player_stats.csv"
+    pp_path = f"{DATA_DIR}/vct2025_team_player_perf.csv"
+    player_stats = pd.read_csv(ps_path) if os.path.exists(ps_path) else pd.DataFrame()
     player_perf  = pd.read_csv(pp_path) if os.path.exists(pp_path) else pd.DataFrame()
-    return matches, team_stats, features, player_stats, player_perf
+    return player_stats, player_perf
 
 
 @st.cache_resource
@@ -180,7 +187,7 @@ def render_sidebar(matches):
 # ─────────────────────────────────────────────
 
 def main():
-    matches, team_stats, features, player_stats, player_perf = load_data()
+    matches, team_stats = load_core()
     model, feature_cols = load_model()
     metrics = load_metrics()
 
@@ -238,6 +245,7 @@ def main():
     # TAB 1 — PREDIKSI
     # ══════════════════════════════════════════
     with tab1:
+        _, player_perf = load_player_stats()
         st.subheader("Prediksi Hasil Match")
         st.caption("Berdasarkan Elo rating, win rate, recent form, dan head-to-head dari data yang difilter")
 
@@ -378,6 +386,7 @@ def main():
     # TAB 3 — STATISTIK TIM
     # ══════════════════════════════════════════
     with tab3:
+        player_stats, player_perf = load_player_stats()
         st.subheader("Statistik Tim")
 
         if not team_list:
@@ -484,6 +493,7 @@ def main():
     # TAB 5 — MAP ANALYSIS
     # ══════════════════════════════════════════
     with tab5:
+        player_stats, player_perf = load_player_stats()
         st.subheader("Analisis Map")
 
         ps = player_stats.copy()
