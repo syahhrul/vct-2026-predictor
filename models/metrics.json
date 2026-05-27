@@ -1,0 +1,24 @@
+{
+  "cv_accuracy_mean": 0.6604,
+  "cv_accuracy_std": 0.0352,
+  "cv_roc_auc_mean": 0.7181,
+  "cv_roc_auc_std": 0.0247,
+  "brier_score": 0.1209,
+  "n_samples": 318,
+  "features_used": [
+    "win_rate_diff",
+    "form_diff",
+    "elo_diff",
+    "h2h_t1_winrate",
+    "t1_win_rate",
+    "t2_win_rate",
+    "t1_recent_form",
+    "t2_recent_form",
+    "t1_elo",
+    "t2_elo",
+    "acs_diff",
+    "rating_diff",
+    "t1_avg_acs",
+    "t2_avg_acs"
+  ]
+}
