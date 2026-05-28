@@ -83,6 +83,15 @@ def load_metrics():
         return json.load(f)
 
 
+@st.cache_data
+def load_simulation():
+    path = f"{DATA_DIR}/simulation_results.json"
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
 def filter_matches(matches, event_filter, region_filter):
     df = matches.copy()
     events = EVENT_GROUPS.get(event_filter)
@@ -233,12 +242,13 @@ def main():
     st.divider()
 
     # ── TABS ─────────────────────────────────
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "⚔️ Prediksi Match",
         "🏆 Elo Ranking",
         "📊 Statistik Tim",
         "📅 Match History",
         "🗺️ Analisis Map",
+        "🎲 Masters London Simulation",
     ])
 
     # ══════════════════════════════════════════
@@ -544,6 +554,161 @@ def main():
                     st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("Data player stats belum tersedia untuk map ini.")
+
+    # ══════════════════════════════════════════
+    # TAB 6 — MASTERS LONDON SIMULATION
+    # ══════════════════════════════════════════
+    with tab6:
+        st.subheader("🎲 Masters London 2026 — Monte Carlo Simulation")
+        st.caption("Simulasi 10,000 skenario Swiss stage + playoff untuk prediksi probabilistik")
+
+        sim = load_simulation()
+
+        if sim is None:
+            st.warning("Data simulasi belum tersedia. Jalankan dulu:")
+            st.code("python src/swiss_simulation.py")
+        else:
+            n_sim = sim.get("n_simulations", 10000)
+            st.caption(f"Berdasarkan {n_sim:,} simulasi · Swiss format GSL · Playoff double elimination")
+
+            col_swiss, col_champ = st.columns(2)
+
+            # ── Swiss Stage Advance Probability ──────────────
+            with col_swiss:
+                st.markdown("#### 🔀 Probabilitas Lolos Swiss Stage")
+                st.caption("8 tim bersaing untuk 4 slot playoff · advance 2W, eliminasi 2L")
+
+                swiss_data = sim.get("swiss_advance_prob", {})
+                swiss_df = pd.DataFrame([
+                    {"Tim": t, "Prob Lolos (%)": v}
+                    for t, v in sorted(swiss_data.items(), key=lambda x: -x[1])
+                ])
+
+                fig_swiss = go.Figure(go.Bar(
+                    x=swiss_df["Prob Lolos (%)"],
+                    y=swiss_df["Tim"],
+                    orientation="h",
+                    marker=dict(
+                        color=swiss_df["Prob Lolos (%)"],
+                        colorscale="Blues",
+                        showscale=False,
+                    ),
+                    text=swiss_df["Prob Lolos (%)"].apply(lambda v: f"{v:.1f}%"),
+                    textposition="outside",
+                ))
+                fig_swiss.update_layout(
+                    xaxis=dict(range=[0, 105], title="Probabilitas Lolos (%)"),
+                    yaxis=dict(title="", autorange="reversed"),
+                    height=320,
+                    margin=dict(l=0, r=60, t=10, b=0),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                )
+                st.plotly_chart(fig_swiss, use_container_width=True)
+
+            # ── Champion Probability ──────────────────────────
+            with col_champ:
+                st.markdown("#### 🏆 Probabilitas Juara Masters London")
+                st.caption("Semua 12 tim · direct seeds + Swiss qualifiers")
+
+                champ_data = sim.get("champion_prob", {})
+                champ_df = pd.DataFrame([
+                    {
+                        "Tim": t,
+                        "Prob Juara (%)": v,
+                        "Tipe": "Direct Seed" if t in ["G2 Esports","EDward Gaming",
+                                                        "Team Heretics","Paper Rex"]
+                               else "Swiss",
+                    }
+                    for t, v in sorted(champ_data.items(), key=lambda x: -x[1])
+                ])
+
+                colors = ["#E84057" if r == "Direct Seed" else "#636EFA"
+                          for r in champ_df["Tipe"]]
+                fig_champ = go.Figure(go.Bar(
+                    x=champ_df["Prob Juara (%)"],
+                    y=champ_df["Tim"],
+                    orientation="h",
+                    marker_color=colors,
+                    text=champ_df["Prob Juara (%)"].apply(lambda v: f"{v:.1f}%"),
+                    textposition="outside",
+                ))
+                fig_champ.update_layout(
+                    xaxis=dict(range=[0, champ_df["Prob Juara (%)"].max() * 1.2],
+                               title="Probabilitas Juara (%)"),
+                    yaxis=dict(title="", autorange="reversed"),
+                    height=420,
+                    margin=dict(l=0, r=60, t=10, b=0),
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                )
+                # Legend manual
+                fig_champ.add_annotation(
+                    x=champ_df["Prob Juara (%)"].max() * 1.1, y=0,
+                    text="🔴 Direct Seed  🔵 Swiss", showarrow=False,
+                    font=dict(size=10), xanchor="right",
+                )
+                st.plotly_chart(fig_champ, use_container_width=True)
+
+            st.divider()
+
+            # ── Win Probability Matrix ────────────────────────
+            st.markdown("#### ⚔️ Win Probability Matrix (Head-to-Head)")
+            st.caption("Probabilitas tim baris mengalahkan tim kolom")
+
+            wpm = sim.get("win_prob_matrix", {})
+            all_teams_sim = sorted(set(
+                t for key in wpm for t in key.split("|")
+            ))
+
+            matrix_data = {}
+            for t1 in all_teams_sim:
+                row = {}
+                for t2 in all_teams_sim:
+                    if t1 == t2:
+                        row[t2] = "—"
+                    else:
+                        key  = f"{t1}|{t2}"
+                        rkey = f"{t2}|{t1}"
+                        if key in wpm:
+                            row[t2] = f"{wpm[key]:.0f}%"
+                        elif rkey in wpm:
+                            row[t2] = f"{100 - wpm[rkey]:.0f}%"
+                        else:
+                            row[t2] = "?"
+                matrix_data[t1] = row
+
+            matrix_df = pd.DataFrame(matrix_data).T
+            matrix_df = matrix_df[all_teams_sim]
+
+            st.dataframe(matrix_df, use_container_width=True)
+
+            st.divider()
+
+            # ── Summary pick'em ────────────────────────────────
+            st.markdown("#### 📋 Pick'em Rekomendasi (berdasarkan simulasi)")
+
+            top_swiss  = sorted(sim.get("swiss_advance_prob", {}).items(),
+                                key=lambda x: -x[1])[:4]
+            top_champ  = sorted(sim.get("champion_prob", {}).items(),
+                                key=lambda x: -x[1])[:3]
+
+            pc1, pc2 = st.columns(2)
+            with pc1:
+                st.markdown("**Swiss Stage — prediksi 4 tim advance:**")
+                for team, prob in top_swiss:
+                    st.markdown(f"- **{team}** — {prob:.1f}% kemungkinan lolos")
+            with pc2:
+                st.markdown("**Top 3 kandidat juara:**")
+                for team, prob in top_champ:
+                    st.markdown(f"- **{team}** — {prob:.1f}% kemungkinan juara")
+
+            st.info(
+                f"💡 Simulasi ini menjalankan {n_sim:,} skenario berbeda. "
+                f"Tiap skenario: undian Swiss random → simulate tiap match → "
+                f"playoff double elimination. Hasilnya adalah distribusi probabilitas, "
+                f"bukan prediksi tunggal."
+            )
 
     # ── FOOTER ───────────────────────────────
     st.divider()
